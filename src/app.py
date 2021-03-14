@@ -54,7 +54,7 @@ css_sources = {
 
 app.layout = dbc.Container(
     [
-        html.H1("Business Tracker Dashboard"),
+        html.H1("Business Tracker"),
         html.P(
             dcc.Markdown(
                 """
@@ -67,7 +67,8 @@ app.layout = dbc.Container(
                 dbc.Col(
                     [
                         html.Br(),
-                        html.Label("To filter the table tab, use:"),
+                        html.Label("To Filter the Review Table tab, Use:", style={"font-weight":"bold"}),
+                        html.Br(),
                         html.Label(
                             [
                                 "Filter by Province:",
@@ -88,8 +89,8 @@ app.layout = dbc.Container(
                         html.Label("Filter by City: "),
                         dcc.Dropdown(id="opt-dropdown", value="Vancouver", style=css_dd),
                         html.Br(),
-                        html.Label("To filter the visuals, use:"),
                         html.Br(),
+                        html.Label("To Filter the Visuals, Use:",style={"font-weight":"bold"}),
                         html.Br(),
                         html.Label("Filter by Business Name: "),
                         dcc.Dropdown(
@@ -171,7 +172,7 @@ app.layout = dbc.Container(
                                 dcc.Tab(
                                     label="Review Table",
                                     children=[
-                                        dash_table.DataTable(id = 'table', page_size=5),
+                                        dash_table.DataTable(id = 'table', page_size=8),
                                         dcc.Dropdown(
                                             id='dropdown',
                                             options=[{"label": col, "value": col} for col in reader.columns],
