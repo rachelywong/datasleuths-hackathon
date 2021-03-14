@@ -8,7 +8,7 @@ from dash.dependencies import Input, Output
 import altair as alt
 import numpy as np
 import pandas as pd
-from vega_datasets import data
+import plotly.express as px
 
 # disable Altair limits
 alt.data_transformers.disable_max_rows()
@@ -32,6 +32,69 @@ df_no_nan = reader.dropna(subset=["BusinessName"])
 # all_names = business_trade_names + reg_business_names
 # all_names_nan = [name for name in all_names if str(name) != "nan"]
 
+# data wrangling for map 
+df_no_nans = df_no_nan.dropna()
+df_geom = pd.DataFrame(df_no_nans["Geom"])
+df_geom
+
+long_list = []
+lat_list = []
+long_list_clean = []
+lat_list_clean = []
+
+for value in df_geom["Geom"]: 
+    if type(value) is str:
+        long = value[34:-20]
+        lat = value[53:-2]
+        long_list.append(long)
+        lat_list.append(lat)
+        long_list_clean.append(long)
+        lat_list_clean.append(lat)
+    else:
+        long_list.append("NaN")
+        lat_list.append("NaN")
+
+df_coordinates = df_no_nans.copy()
+
+df_coordinates["longitude"] = long_list
+df_coordinates["latitude"] = lat_list
+
+def map_maker():
+    fig = px.scatter_geo(df_coordinates, lat = "latitude", lon = "longitude", scope="north america",
+                    #lataxis = [40,70],
+                    #lonaxis = [-130,-55],
+                     color="LocalArea", # which column to use to set the color of markers
+                     hover_name="BusinessName", # column added to hover information
+                     size="NumberofEmployees", # size of markers
+                     projection="natural earth")
+
+#fig.update_geos(fitbounds="locations")
+
+
+    fig.update_layout(
+        title_text = 'Map',
+        geo = dict(
+            resolution = 50,
+            showland = True,
+            showlakes = True,
+            landcolor = 'rgb(204, 204, 204)',
+            countrycolor = 'rgb(204, 204, 204)',
+            lakecolor = 'rgb(255, 255, 255)',
+            projection_type = "equirectangular",
+            coastlinewidth = 2,
+            #lataxis = dict(
+            #    range = [48,50],
+                #showgrid = True,
+                #dtick = 10
+            #),
+            #lonaxis = dict(
+            #    range = [-122,-124],
+                #showgrid = True,
+                #dtick = 20
+            #),
+        ))
+
+    return fig
 
 # cities for each province dictionary
 province_city_dict = {}
@@ -58,7 +121,7 @@ app.layout = dbc.Container(
         html.P(
             dcc.Markdown(
                 """
-                This business tracker allow us to track businesses across Canada!
+                This business tracker tracks businesses across Canada!
                 """
             )
         ),
@@ -67,7 +130,7 @@ app.layout = dbc.Container(
                 dbc.Col(
                     [
                         html.Br(),
-                        html.Label("To Filter the Review Table tab, Use:", style={"font-weight":"bold"}),
+                        html.Label("To Filter the Review Table Tab, use:", style={"font-weight":"bold"}),
                         html.Br(),
                         html.Label(
                             [
@@ -126,7 +189,7 @@ app.layout = dbc.Container(
                         dcc.Tabs(
                             [
                                 dcc.Tab(
-                                    label="Licence Number Records",
+                                    label="License Number Records",
                                     children=[
                                         html.Iframe(
                                             id="issue_plot",
@@ -140,7 +203,7 @@ app.layout = dbc.Container(
                                     ],
                                 ),
                                 dcc.Tab(
-                                    label="Licence Activity",
+                                    label="License Activity",
                                     children=[
                                         html.Iframe(
                                             id="bar_plot",
@@ -179,6 +242,15 @@ app.layout = dbc.Container(
                                             multi=True,
                                             value=["BusinessType"]
 
+                                        )
+                                        
+                                    ],
+                                ),
+                                dcc.Tab(
+                                    label="Map",
+                                    children=[
+                                        dcc.Graph(
+                                            figure=map_maker()
                                         )
                                         
                                     ],
