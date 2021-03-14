@@ -57,7 +57,7 @@ app.layout = dbc.Container(
         html.P(
             dcc.Markdown(
                 """
-                This business tracker allow us to track business across Canada!
+                This business tracker allow us to track businesses across Canada!
                 """
             )
         ),
@@ -92,7 +92,7 @@ app.layout = dbc.Container(
                         html.Label("Filter by Business Name: "),
                         dcc.Dropdown(
                             id="input_name",
-                            value="Golden Trim Enterprises Inc",
+                            value='Tamton Networking Inc',
                             multi=False,
                             style=css_dd,
                             options=[
@@ -123,10 +123,11 @@ app.layout = dbc.Container(
                         dcc.Tabs(
                             [
                                 dcc.Tab(
-                                    label="Tab1",
+                                    label="Licence Number Records",
                                     children=[
                                         html.Iframe(
                                             id="issue_plot",
+                                            srcDoc=None,
                                             style={
                                                 "border-width": "0",
                                                 "width": "100%",
@@ -136,28 +137,50 @@ app.layout = dbc.Container(
                                     ],
                                 ),
                                 dcc.Tab(
-                                    label="Tab2",
+                                    label="Licence Activity",
                                     children=[
-                                        dcc.Graph(
-                                            figure={
-                                                "data": [
-                                                    {
-                                                        "x": [1, 2, 3],
-                                                        "y": [4, 1, 2],
-                                                        "type": "bar",
-                                                        "name": "SF",
-                                                    },
-                                                    {
-                                                        "x": [1, 2, 3],
-                                                        "y": [2, 4, 5],
-                                                        "type": "bar",
-                                                        "name": "Montreal",
-                                                    },
-                                                ]
-                                            }
+                                        html.Iframe(
+                                            id="bar_plot",
+                                            srcDoc=None,
+                                            style={
+                                                "border-width": "0",
+                                                "width": "100%",
+                                                "height": "400px",
+                                            },
                                         )
+                                        
                                     ],
                                 ),
+                                dcc.Tab(
+                                    label="Employee Count",
+                                    children=[
+                                        html.Iframe(
+                                            id="employee_plot",
+                                            srcDoc=None,
+                                            style={
+                                                "border-width": "0",
+                                                "width": "100%",
+                                                "height": "400px",
+                                            },
+                                        )
+                                        
+                                    ],
+                                ),
+                                # dcc.Tab(
+                                #     label="Map",
+                                #     children=[
+                                #         html.Iframe(
+                                #             id="employee_plot",
+                                #             srcDoc=None,
+                                #             style={
+                                #                 "border-width": "0",
+                                #                 "width": "100%",
+                                #                 "height": "400px",
+                                #             },
+                                #         )
+                                        
+                                #     ],
+                                # ),
                             ]
                         )
                     ],
@@ -175,36 +198,47 @@ app.layout = dbc.Container(
 def update_city_dropdown(province):
     return [{"label": i, "value": i} for i in province_city_dict[province]]
 
-
-# def plot_altair(business=None):
-
-#     dat = df_no_nan[(df_no_nan["BusinessName"] == business)].dropna()
-
-#     base = alt.Chart(dat).encode(
-#         alt.X("LicenceNumber:N", axis=alt.Axis(title=None)), tooltip="BusinessName"
-#     )
-
-#     area = base.mark_circle(size=100, opacity=0.5, color="#57A44C").encode(
-#         alt.Y("IssuedDate", axis=alt.Axis(title="Issued Date", titleColor="#57A44C")),
-#         alt.Y2("IssuedDate"),
-#     )
-
-#     line = base.mark_line(stroke="#5276A7", interpolate="monotone").encode(
-#         alt.Y("ExpiredDate", axis=alt.Axis(title="Expired Date", titleColor="#5276A7"))
-#     )
-
-#     chart = alt.layer(area, line).resolve_scale(y="independent")
-
-#     return chart.to_html()
 @app.callback(
     dash.dependencies.Output("issue_plot", "srcDoc"),
     dash.dependencies.Input("input_name", "value"),
 )
-def plot_barchat(business=None):
-    df = df_no_nan
-    df[‘IssuedDate’] = df[‘IssuedDate’].str[0:10]
+def plot_altair(business=None):
+    df = df_no_nan.copy()
+    df['IssuedDate'] = df['IssuedDate'].str[0:10]
+    
+    dat = df[(df['BusinessName'] == business)]
+    dat = dat[["BusinessName", "ExpiredDate", "IssuedDate", "LicenceNumber"]]
+    dat = dat.dropna()
 
-    dat = df[(df["BusinessName"] == business)].dropna()
+    base = alt.Chart(dat).encode(
+        alt.X("LicenceNumber:N", axis=alt.Axis(title="License Number")), tooltip="BusinessName"
+    )
+
+    area = base.mark_circle(size=100, opacity=0.5, color="#57A44C").encode(
+        alt.Y("IssuedDate", axis=alt.Axis(title="Issued Date", titleColor="#57A44C")),
+        alt.Y2("IssuedDate"),
+    )
+
+    line = base.mark_line(stroke="#5276A7", interpolate="monotone").encode(
+        alt.Y("ExpiredDate", axis=alt.Axis(title="Expired Date", titleColor="#5276A7"))
+    )
+
+    chart = alt.layer(area, line).resolve_scale(y="independent").properties(width=200, height =300)
+
+    return chart.to_html()
+
+@app.callback(
+    dash.dependencies.Output("bar_plot", "srcDoc"),
+    dash.dependencies.Input("input_name", "value"),
+)
+def plot_barchat(business=None):
+
+    df = df_no_nan.copy()
+    df['IssuedDate'] = df['IssuedDate'].str[0:10]
+
+    dat = df[(df['BusinessName'] == business)]
+    dat = dat[["BusinessName", "ExpiredDate", "IssuedDate", "FOLDERYEAR", "NumberofEmployees"]]
+    dat = dat.dropna()
 
     dat["IssuedDate"] = pd.to_datetime(dat["IssuedDate"], format="%Y-%m-%d")
     dat["ExpiredDate"] = pd.to_datetime(dat["ExpiredDate"])
@@ -221,9 +255,23 @@ def plot_barchat(business=None):
             ),
             alt.Y("DaysActive", axis=alt.Axis(title="Days Active", titleColor="black")),
             tooltip=["BusinessName", "IssuedDate", "ExpiredDate", "NumberofEmployees"],
-        )
+        ).properties(width=200, height =300)
     )
 
+    return chart.to_html()
+
+@app.callback(
+    dash.dependencies.Output("employee_plot", "srcDoc"),
+    dash.dependencies.Input("input_name", "value"),
+)
+def graph_EmployeeNumber(company_name=None):
+    max_size = reader[reader['BusinessName']==company_name]['NumberofEmployees'].max()
+    company_name_list = reader[reader['BusinessName'] == company_name]
+    chart = alt.Chart(company_name_list, title = company_name).mark_point().encode(
+    y=alt.Y('NumberofEmployees', axis=alt.Axis(title = 'Number of Employees'), scale=alt.Scale(domain=(0,round(1.5*max_size, 0)))),
+    x=alt.X('FOLDERYEAR', axis=alt.Axis(title = 'Folder year'), scale=alt.Scale(domain=(13, 21))),
+    color = "Status"
+    )
     return chart.to_html()
 
 
