@@ -1,5 +1,6 @@
 # Load modules
 import dash
+import dash_table
 import dash_html_components as html
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
@@ -66,6 +67,7 @@ app.layout = dbc.Container(
                 dbc.Col(
                     [
                         html.Br(),
+                        html.Label("To filter the table tab, use:"),
                         html.Label(
                             [
                                 "Filter by Province:",
@@ -84,9 +86,9 @@ app.layout = dbc.Container(
                         ),
                         html.Br(),
                         html.Label("Filter by City: "),
-                        dcc.Dropdown(id="opt-dropdown", style=css_dd),
+                        dcc.Dropdown(id="opt-dropdown", value="Vancouver", style=css_dd),
                         html.Br(),
-                        html.Label("OR"),
+                        html.Label("To filter the visuals, use:"),
                         html.Br(),
                         html.Br(),
                         html.Label("Filter by Business Name: "),
@@ -166,21 +168,20 @@ app.layout = dbc.Container(
                                         
                                     ],
                                 ),
-                                # dcc.Tab(
-                                #     label="Map",
-                                #     children=[
-                                #         html.Iframe(
-                                #             id="employee_plot",
-                                #             srcDoc=None,
-                                #             style={
-                                #                 "border-width": "0",
-                                #                 "width": "100%",
-                                #                 "height": "400px",
-                                #             },
-                                #         )
+                                dcc.Tab(
+                                    label="Review Table",
+                                    children=[
+                                        dash_table.DataTable(id = 'table', page_size=5),
+                                        dcc.Dropdown(
+                                            id='dropdown',
+                                            options=[{"label": col, "value": col} for col in reader.columns],
+                                            multi=True,
+                                            value=["BusinessType"]
+
+                                        )
                                         
-                                #     ],
-                                # ),
+                                    ],
+                                ),
                             ]
                         )
                     ],
@@ -197,6 +198,18 @@ app.layout = dbc.Container(
 )
 def update_city_dropdown(province):
     return [{"label": i, "value": i} for i in province_city_dict[province]]
+
+@app.callback(
+    Output('table', 'data'),
+    Output('table', 'columns'),
+    Input('dropdown', 'value'),
+    Input('name-dropdown', 'value'),
+    Input('opt-dropdown', 'value'))
+def update_table(cols, province, city):
+    columns=[{"name": col, "id": col} for col in cols]
+    filtered_df = reader[(reader['Province'] == province) & (reader['City'] == city)]
+    data=filtered_df[cols].to_dict('records')
+    return data, columns
 
 @app.callback(
     dash.dependencies.Output("issue_plot", "srcDoc"),
