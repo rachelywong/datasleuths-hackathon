@@ -235,7 +235,7 @@ app.layout = dbc.Container(
                                 dcc.Tab(
                                     label="Review Table",
                                     children=[
-                                        dash_table.DataTable(id = 'table', page_size=8),
+                                        dash_table.DataTable(id = 'table', page_size=8, sort_action="native",filter_action='native',column_selectable="single"),
                                         dcc.Dropdown(
                                             id='dropdown',
                                             options=[{"label": col, "value": col} for col in reader.columns],
